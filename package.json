@@ -1,0 +1,30 @@
+{
+  "name": "amino-deploy",
+  "version": "0.0.0",
+  "description": "command-line tool to deploy an application across a cluster of drones",
+  "bin": "./bin/amino-deploy",
+  "dependencies": {
+    "commander": "~1.0.4",
+    "amino": "~1.1.2",
+    "tar": "~0.1.13"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/carlos8f/amino-deploy.git"
+  },
+  "homepage": "https://github.com/carlos8f/amino-deploy",
+  "keywords": [
+    "cluster",
+    "performance",
+    "scaling",
+    "deployment"
+  ],
+  "author": "Carlos Rodriguez <carlos@s8f.org> (http://s8f.org/)",
+  "license": "MIT"
+}
