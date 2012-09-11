@@ -1,9 +1,9 @@
 amino-deploy
 ============
 
-command-line tools to deploy an application across a cluster of drones
+command-line tool to deploy an application across a cluster of drones
 
-[![build status](https://secure.travis-ci.org/carlos8f/amino-deploy.png)](http://travis-ci.org/carlos8f/amino-deploy)
+[![build status](https://secure.travis-ci.org/amino/amino-deploy.png)](http://travis-ci.org/amino/amino-deploy)
 
 - - -
 
