@@ -12,7 +12,7 @@ if (process.argv[2] === 'spawn') {
     console.error('usage: amino-deploy spawn [options] -- <cmd> [args...]');
     process.exit(1);
   }
-  var spawnArgs = process.argv.splice(4);
+  var spawnArgs = process.argv.splice(idx + 1);
 }
 
 var program = require('commander')
