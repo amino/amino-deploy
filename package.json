@@ -6,8 +6,6 @@
   "dependencies": {
     "commander": "~1.0.4",
     "amino": "~1.1.2",
-    "tar": "~0.1.13",
-    "fstream": "~0.1.19",
     "npm": "~1.1.61",
     "read-package-json": "~0.1.5"
   },
