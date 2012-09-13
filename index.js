@@ -2,6 +2,7 @@ var npm = require('npm')
   , sha1 = require('./lib/sha1')
   , readJson = require('read-package-json')
   , path = require('path')
+  , commithash = require('./lib/commit-hash')
 
 function list (str) {
   return str.split(/ *, */).map(function (val) {
@@ -52,14 +53,21 @@ program
       var name = data.name
         , version = data.version
 
-      npm.load(function (err) {
+      commithash(program.root, function (err, commit) {
         ifErr(err);
-        npm.commands.cache(['add', program.root], function (err) {
+        npm.load(function (err) {
           ifErr(err);
-          var file = path.join(npm.cache, name, version, 'package.tgz');
-          sha1.get(file, function (err, sha1sum) {
+          npm.commands.cache(['add', program.root], function (err) {
             ifErr(err);
-            console.log('cached project with sha1 sum: ' + sha1sum);
+            var file = path.join(npm.cache, name, version, 'package.tgz');
+            sha1.get(file, function (err, sha1sum) {
+              ifErr(err);
+              console.log('deployed project at ' + program.root);
+              console.log('sha1 sum: ' + sha1sum);
+              if (commit) {
+                console.log('git hash: ' + commit);
+              }
+            });
           });
         });
       });
