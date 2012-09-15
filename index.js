@@ -94,24 +94,18 @@ program
               });
               amino.publish('_get:' + spec.service, amino.id);
               // end the search after one second
-              var droneCount = 0
-                , completed = 0
+              var completed = 0
               setTimeout(function () {
                 console.log('found ' + drones.length + ' drone' + (drones.length !== 1 ? 's' : '') + '.');
                 if (program.drones) {
                   drones = drones.slice(0, program.drones);
                 }
-                droneCount = drones.length;
-                if (!droneCount) {
+                if (!drones.length) {
                   ifErr(new Error('no drones to deploy to!'));
                 }
                 drones.forEach(deploy);
               }, 1000);
               function deploy (spec) {
-                var spec = drones.shift();
-                if (!spec) {
-                  return;
-                }
                 var baseUrl = 'http://' + spec.host + ':' + spec.port;
                 function spawn () {
                   var url = baseUrl + '/spawn';
@@ -121,8 +115,8 @@ program
                     if (res.statusCode === 200 && body.status === 'ok') {
                       console.log('spawned pid #' + body.pid + ' on drone ' + spec.id);
                       completed++;
-                      if (completed === droneCount) {
-                        console.log('spawned on ' + completed + ' drone' + (droneCount !== 1 ? 's' : '') + '!');
+                      if (completed === drones.length) {
+                        console.log('spawned on ' + completed + ' drone' + (drones.length !== 1 ? 's' : '') + '!');
                         process.exit();
                       }
                     }
