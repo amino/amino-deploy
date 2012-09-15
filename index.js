@@ -113,7 +113,7 @@ program
                     ifErr(err);
                     body = safeParse(body);
                     if (res.statusCode === 200 && body.status === 'ok') {
-                      console.log('spawned pid #' + body.pid + ' on drone ' + spec.id);
+                      console.log('drone ' + spec.id + ': spawned pid #' + body.pid);
                       completed++;
                       if (completed === drones.length) {
                         console.log('spawned on ' + completed + ' drone' + (drones.length !== 1 ? 's' : '') + '!');
@@ -121,10 +121,10 @@ program
                       }
                     }
                     else if (res.status === 'error') {
-                      ifErr(new Error('received error on spawn to ' + spec + ': ' + body.error));
+                      ifErr(new Error('drone ' + spec.id + ': received error on spawn: ' + body.error));
                     }
                     else {
-                      ifErr(new Error('received bad response for deployment to ' + spec + ': ' + res.statusCode));
+                      ifErr(new Error('drone ' + spec.id + ': bad response code on spawn: ' + res.statusCode));
                     }
                   });
                   var form = req.form();
@@ -136,19 +136,19 @@ program
                   ifErr(err);
                   body = safeParse(body);
                   if (res.statusCode === 404) {
-                    console.log('sending new deployment to drone ' + spec.id + ' at ' + url);
+                    console.log('drone ' + spec.id + ': deploying...');
                     var req = request.put(url, function (err, res, body) {
                       ifErr(err);
                       body = safeParse(body);
-                      console.log('drone ' + spec.id + ' replied with ' + res.statusCode);
+                      console.log('drone ' + spec.id + ': replied with status ' + res.statusCode);
                       if (res.statusCode === 201 || res.statusCode === 200 && body.status === 'ok') {
                         spawn();
                       }
                       else if (body.status === 'error') {
-                        ifErr(new Error('received error on deploy to ' + spec + ': ' + body.error));
+                        ifErr(new Error('drone ' + spec.id + ': received error on deploy: ' + body.error));
                       }
                       else {
-                        ifErr(new Error('received bad response for deployment to ' + spec + ': ' + res.statusCode));
+                        ifErr(new Error('drone ' + spec.id + ': bad response code on deploy: ' + res.statusCode));
                       }
                     });
                     var form = req.form();
@@ -159,11 +159,11 @@ program
                     form.append('payload', fs.createReadStream(file));
                   }
                   else if (res.statusCode === 200) {
-                    console.log('drone ' + spec.id + ' up-to-date');
+                    console.log('drone ' + spec.id + ': up-to-date');
                     spawn();
                   }
                   else {
-                    ifErr(new Error('unexpected status code for ' + url + ' from ' + spec + ': ' + res.statusCode));
+                    ifErr(new Error('drone ' + spec.id + ': bad response code on GET ' + url + ': ' + res.statusCode));
                   }
                 });
               }
