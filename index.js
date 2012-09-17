@@ -140,7 +140,6 @@ program
                     var req = request.put(url, function (err, res, body) {
                       ifErr(err);
                       body = safeParse(body);
-                      console.log('drone ' + spec.id + ': replied with status ' + res.statusCode);
                       if (res.statusCode === 201 || res.statusCode === 200 && body.status === 'ok') {
                         spawn();
                       }
