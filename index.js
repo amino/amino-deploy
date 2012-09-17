@@ -22,6 +22,14 @@ if (process.argv[2] === 'spawn') {
     process.exit(1);
   }
   var spawnArgs = process.argv.splice(idx + 1);
+  var spawnEnv = {};
+  for (var i = 0; i < process.argv.length; i++) {
+    var match = process.argv[i].match(/^\-\-env\.(.*?)(?:=(.*))?$/);
+    if (match) {
+      var name = match[1], val;
+      spawnEnv[match[1]] = match[2] || process.argv.splice(i + 1, 1)[0];
+    }
+  }
 }
 
 var program = require('commander')
@@ -108,12 +116,12 @@ program
               function deploy (spec) {
                 var baseUrl = 'http://' + spec.host + ':' + spec.port;
                 function spawn () {
-                  var url = baseUrl + '/spawn';
+                  var url = baseUrl + '/deployments/' + sha1sum + '/spawn';
                   var req = request.post({url: url, json: true}, function (err, res, body) {
                     ifErr(err);
                     body = safeParse(body);
                     if (res.statusCode === 200 && body.status === 'ok') {
-                      console.log('drone ' + spec.id + ': spawned pid #' + body.pid);
+                      console.log('drone ' + spec.id + ': spawned ok');
                       completed++;
                       if (completed === drones.length) {
                         console.log('spawned on ' + completed + ' drone' + (drones.length !== 1 ? 's' : '') + '!');
@@ -130,6 +138,8 @@ program
                   var form = req.form();
                   form.append('cmd', spawnArgs.shift());
                   form.append('args', JSON.stringify(spawnArgs));
+                  form.append('env', JSON.stringify(spawnEnv));
+                  form.append('commit', commit);
                 }
                 var url = baseUrl + '/deployments/' + sha1sum;
                 var req = request(url, function (err, res, body) {
@@ -151,9 +161,13 @@ program
                       }
                     });
                     var form = req.form();
+                    form.append('name', name);
                     form.append('sha1sum', sha1sum);
                     if (commit) {
                       form.append('commit', commit);
+                    }
+                    if (program.threads) {
+                      form.append('threads', threads);
                     }
                     form.append('payload', fs.createReadStream(file));
                   }
@@ -175,21 +189,21 @@ program
 
 program
   .command('respawn [sha1]')
-  .description('respawn running processes, optionally on a particular git sha1')
+  .description('respawn running processes, optionally on a particular git or tarball sha1')
   .action(function (sha1) {
     console.log('respawn ' + sha1);
   })
 
 program
   .command('ps [sha1]')
-  .description('show running processes, optionally on a particular git sha1')
+  .description('show running processes, optionally on a particular git or tarball sha1')
   .action(function (sha1) {
     console.log('ps ' + sha1);
   })
 
 program
   .command('stop [sha1]')
-  .description('stop running processes, optionally on a particular git sha1')
+  .description('stop running processes, optionally on a particular git or tarball sha1')
   .action(function (sha1) {
     console.log('stop ' + sha1);
   })
