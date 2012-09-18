@@ -206,8 +206,8 @@ program
   })
 
 program
-  .command('respawn [sha1]')
-  .description('respawn running processes, optionally on a particular git or tarball sha1')
+  .command('respawn [sha1/id]')
+  .description('respawn running processes, optionally on a particular git or tarball sha1 or process id')
   .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
   .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .action(function (sha1, program) {
@@ -286,8 +286,8 @@ program
   })
 
 program
-  .command('stop [sha1]')
-  .description('stop running processes, optionally on a particular git or tarball sha1')
+  .command('stop [sha1/id]')
+  .description('stop running processes, optionally on a particular git or tarball sha1 or process id')
   .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
   .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .action(function (sha1, program) {
