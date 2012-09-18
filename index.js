@@ -158,6 +158,9 @@ program
                   form.append('args', JSON.stringify(spawnArgs));
                   form.append('env', JSON.stringify(spawnEnv));
                   form.append('commit', commit);
+                  if (program.threads) {
+                    form.append('threads', program.threads);
+                  }
                 }
                 var url = baseUrl + '/deployments/' + sha1sum;
                 var req = request(url, function (err, res, body) {
@@ -183,9 +186,6 @@ program
                     form.append('sha1sum', sha1sum);
                     if (commit) {
                       form.append('commit', commit);
-                    }
-                    if (program.threads) {
-                      form.append('threads', threads);
                     }
                     form.append('payload', fs.createReadStream(file));
                   }
