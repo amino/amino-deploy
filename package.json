@@ -2,7 +2,9 @@
   "name": "amino-deploy",
   "version": "0.0.0",
   "description": "command-line tool to deploy an application across a cluster of drones",
-  "bin": "./bin/amino-deploy",
+  "bin": {
+    "amino": "./bin/amino"
+  },
   "dependencies": {
     "commander": "~1.0.4",
     "amino": "~1.1.2",

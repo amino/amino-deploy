@@ -20,7 +20,7 @@ function list (str) {
 if (process.argv[2] === 'spawn') {
   var idx = process.argv.indexOf('--');
   if (!~idx) {
-    console.error('usage: amino-deploy spawn [options] -- <cmd> [args...]');
+    console.error('usage: amino spawn [options] -- <cmd> [args...]');
     process.exit(1);
   }
   var spawnArgs = process.argv.splice(idx + 1);
