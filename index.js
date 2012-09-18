@@ -6,6 +6,8 @@ var npm = require('npm')
   , request = require('request')
   , amino = require('amino')
   , fs = require('fs')
+  , archy = require('archy')
+  , moment = require('moment')
 
 function list (str) {
   return str.split(/ *, */).map(function (val) {
@@ -23,10 +25,19 @@ if (process.argv[2] === 'spawn') {
   }
   var spawnArgs = process.argv.splice(idx + 1);
   var spawnEnv = {};
+  for (var i = 0; i < spawnArgs.length; i++) {
+    var match = spawnArgs[i].match(/^([A-Z0-9_]+)=(.*?)$/);
+    if (match) {
+      spawnEnv[match[1]] = match[2];
+      spawnArgs.shift();
+    }
+    else {
+      break;
+    }
+  }
   for (var i = 0; i < process.argv.length; i++) {
     var match = process.argv[i].match(/^\-\-env\.(.*?)(?:=(.*))?$/);
     if (match) {
-      var name = match[1], val;
       spawnEnv[match[1]] = match[2] || process.argv.splice(i + 1, 1)[0];
     }
   }
@@ -60,6 +71,26 @@ function safeParse (body) {
   return body || {};
 }
 
+function findDrones(program, cb) {
+  var drones = [];
+  if (!amino.Spec) amino.init({redis: program.redis});
+  var spec = new amino.Spec(program.service);
+  console.log('searching for drones...');
+  amino.subscribe('_get:' + spec.service + ':' + amino.id, function (spec) {
+    drones.push(new amino.Spec(spec));
+  });
+  amino.publish('_get:' + spec.service, amino.id);
+  // end the search after one second
+  var completed = 0
+  setTimeout(function () {
+    console.log('found ' + drones.length + ' drone' + (drones.length !== 1 ? 's' : '') + '.');
+    if (program.drones) {
+      drones = drones.slice(0, program.drones);
+    }
+    cb(drones);
+  }, 1000);
+}
+
 program
   .command('spawn -- [cmd] [args...]')
   .description('deploy a project to drones and spawn a command')
@@ -70,15 +101,13 @@ program
   .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .action(function () {
     var program = [].slice.call(arguments).pop();
-    amino.init({redis: program.redis});
-
-    var spec = new amino.Spec(program.service);
 
     readJson(path.join(program.root, 'package.json'), function (err, data) {
       ifErr(err);
 
       var name = data.name
         , version = data.version
+        , completed = 0
 
       commithash(program.root, function (err, commit) {
         ifErr(err);
@@ -94,25 +123,14 @@ program
               if (commit) {
                 console.log('git hash: ' + commit);
               }
-              var drones = [];
-              // search for drones
-              console.log('searching for drones...');
-              amino.subscribe('_get:' + spec.service + ':' + amino.id, function (spec) {
-                drones.push(spec);
-              });
-              amino.publish('_get:' + spec.service, amino.id);
-              // end the search after one second
-              var completed = 0
-              setTimeout(function () {
-                console.log('found ' + drones.length + ' drone' + (drones.length !== 1 ? 's' : '') + '.');
-                if (program.drones) {
-                  drones = drones.slice(0, program.drones);
-                }
+              var drones;
+              findDrones(program, function (foundDrones) {
+                drones = foundDrones;
                 if (!drones.length) {
                   ifErr(new Error('no drones to deploy to!'));
                 }
                 drones.forEach(deploy);
-              }, 1000);
+              });
               function deploy (spec) {
                 var baseUrl = 'http://' + spec.host + ':' + spec.port;
                 function spawn () {
@@ -190,22 +208,111 @@ program
 program
   .command('respawn [sha1]')
   .description('respawn running processes, optionally on a particular git or tarball sha1')
-  .action(function (sha1) {
-    console.log('respawn ' + sha1);
+  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
+  .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
+  .action(function (sha1, program) {
+    findDrones(program, function (drones) {
+      if (!drones.length) ifErr(new Error('no drones found!'));
+      var completed = 0;
+      drones.forEach(function (spec) {
+        var baseUrl = 'http://' + spec.host + ':' + spec.port;
+        var path = sha1 ? '/ps/' + sha1 + '/respawn' : '/respawn';
+        request.post(baseUrl + path, function (err, res, body) {
+          ifErr(err);
+          body = safeParse(body);
+          if (res.statusCode === 200) {
+            console.log('drone ' + spec.id + ': respawned ' + body.count + ' processes');
+          }
+          else {
+            console.log('drone ' + spec.id + ': error ' + res.statusCode + ': ' + body.error);
+          }
+          completed++;
+          if (completed === drones.length) {
+            process.exit();
+          }
+        });
+      });
+    });
   })
 
 program
   .command('ps [sha1]')
   .description('show running processes, optionally on a particular git or tarball sha1')
-  .action(function (sha1) {
-    console.log('ps ' + sha1);
+  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
+  .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
+  .action(function (sha1, program) {
+    findDrones(program, function (drones) {
+      if (!drones.length) ifErr(new Error('no drones found!'));
+      var completed = 0, ps = {label: program.service, nodes: []};
+      drones.forEach(function (spec) {
+        var baseUrl = 'http://' + spec.host + ':' + spec.port;
+        var path = sha1 ? '/ps/' + sha1 : '/ps';
+        request.get(baseUrl + path, function (err, res, body) {
+          ifErr(err);
+          body = safeParse(body);
+          if (res.statusCode === 200) {
+            ps.nodes.push({
+              label: 'drone#' + spec.id + ' (' + spec.host + ':' + spec.port + ')',
+              nodes: Object.keys(body.ps).map(function (pid) {
+                return {
+                  label: 'proc#' + pid,
+                  nodes: Object.keys(body.ps[pid]).filter(function (k) {
+                    return !k.match(/^(env|id)$/);
+                  }).map(function (k) {
+                    var val = body.ps[pid][k];
+                    if (k === 'uptime') {
+                      val = moment.humanizeDuration(val);
+                    }
+                    else if (k === 'lastRespawn') {
+                      val = moment.humanizeDuration(-1 * val, true);
+                    }
+                    return k + ': ' + val;
+                  })
+                };
+              })
+            });
+          }
+          else {
+            console.log('drone ' + spec.id + ': error ' + res.statusCode + ': ' + body.error);
+          }
+          completed++;
+          if (completed === drones.length) {
+            console.log(archy(ps));
+            process.exit();
+          }
+        });
+      });
+    });
   })
 
 program
   .command('stop [sha1]')
   .description('stop running processes, optionally on a particular git or tarball sha1')
-  .action(function (sha1) {
-    console.log('stop ' + sha1);
+  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
+  .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
+  .action(function (sha1, program) {
+    findDrones(program, function (drones) {
+      if (!drones.length) ifErr(new Error('no drones found!'));
+      var completed = 0, ps = {label: program.service, nodes: []};
+      drones.forEach(function (spec) {
+        var baseUrl = 'http://' + spec.host + ':' + spec.port;
+        var path = sha1 ? '/ps/' + sha1 : '/ps';
+        request.del(baseUrl + path, function (err, res, body) {
+          ifErr(err);
+          body = safeParse(body);
+          if (res.statusCode === 200) {
+            console.log('drone ' + spec.id + ': stopped ' + body.count + ' processes');
+          }
+          else {
+            console.log('drone ' + spec.id + ': error ' + res.statusCode + ': ' + body.error);
+          }
+          completed++;
+          if (completed === drones.length) {
+            process.exit();
+          }
+        });
+      });
+    });
   })
 
 program
