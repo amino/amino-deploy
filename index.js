@@ -18,39 +18,40 @@ function list (str) {
 
 // since commander doesn't like unknown options or dynamic args, split off
 // spawn args and store them.
-if (process.argv[2] === 'spawn') {
+if (process.argv[2] === 'deploy') {
   var idx = process.argv.indexOf('--');
-  if (!~idx) {
-    console.error('usage: amino spawn [options] -- <cmd> [args...]');
-    process.exit(1);
+  if (~idx) {
+    var spawnArgs = process.argv.splice(idx + 1);
+    var spawnEnv = {};
+    for (var i = 0; i < spawnArgs.length; i++) {
+      var match = spawnArgs[i].match(/^([A-Z0-9_]+)=(.*?)$/);
+      if (match) {
+        spawnEnv[match[1]] = match[2];
+        spawnArgs.shift();
+      }
+      else {
+        break;
+      }
+    }
+    var argv = [].concat(process.argv);
+    process.argv = [];
+    for (var i = 0; i < argv.length; i++) {
+      var match = argv[i].match(/^\-\-env\.([A-Z0-9_]+)(?:=(.*))?$/);
+      if (match && match[2]) {
+        spawnEnv[match[1]] = match[2];
+      }
+      else if (match && match[1]) {
+        spawnEnv[match[1]] = argv.splice(i + 1, 1)[0];
+      }
+      else {
+        process.argv.push(argv[i]);
+      }
+    }
+    var spawnCmd = spawnArgs.shift();
   }
-  var spawnArgs = process.argv.splice(idx + 1);
-  var spawnEnv = {};
-  for (var i = 0; i < spawnArgs.length; i++) {
-    var match = spawnArgs[i].match(/^([A-Z0-9_]+)=(.*?)$/);
-    if (match) {
-      spawnEnv[match[1]] = match[2];
-      spawnArgs.shift();
-    }
-    else {
-      break;
-    }
+  else {
+    var spawnCmd = false;
   }
-  var argv = [].concat(process.argv);
-  process.argv = [];
-  for (var i = 0; i < argv.length; i++) {
-    var match = argv[i].match(/^\-\-env\.([A-Z0-9_]+)(?:=(.*))?$/);
-    if (match && match[2]) {
-      spawnEnv[match[1]] = match[2];
-    }
-    else if (match && match[1]) {
-      spawnEnv[match[1]] = argv.splice(i + 1, 1)[0];
-    }
-    else {
-      process.argv.push(argv[i]);
-    }
-  }
-  var spawnCmd = spawnArgs.shift();
 }
 
 var program = require('commander')
@@ -104,8 +105,8 @@ function findDrones(program, cb) {
 }
 
 program
-  .command('spawn -- [cmd] [args...]')
-  .description('deploy a project to drones and spawn a command')
+  .command('deploy -- [cmd] [args...]')
+  .description('deploy a project to drones and optionally spawn a command')
   .option('-r, --root <dir>', 'project root which will be packed and sent to drones as the cwd. (default: cwd)', process.cwd())
   .option('--drones <count>', 'number of drones to spawn on. (default: all drones)')
   .option('--threads <count>', 'number of threads to spawn per drone. (default: drone\'s cpu count)')
@@ -124,16 +125,18 @@ program
         ifErr(err);
         npm.load(function (err) {
           ifErr(err);
+          console.log('preparing deployment...');
           npm.commands.cache(['add', program.root], function (err) {
             ifErr(err);
             var file = path.join(npm.cache, name, version, 'package.tgz');
             sha1.get(file, function (err, sha1sum) {
               ifErr(err);
-              console.log('deploying project at ' + program.root);
+              console.log('\ndeploying project at ' + program.root);
               console.log('sha1 sum: ' + sha1sum);
               if (commit) {
                 console.log('git hash: ' + commit);
               }
+              console.log();
               var drones;
               findDrones(program, function (foundDrones) {
                 drones = foundDrones;
@@ -145,14 +148,19 @@ program
               function deploy (spec) {
                 var baseUrl = 'http://' + spec.host + ':' + spec.port;
                 function spawn () {
+                  if (!spawnCmd) {
+                    if (++completed === drones.length) {
+                      process.exit();
+                    }
+                    return;
+                  }
                   var url = baseUrl + '/deployments/' + sha1sum + '/spawn';
                   var req = request.post({url: url, json: true}, function (err, res, body) {
                     ifErr(err);
                     body = safeParse(body);
                     if (res.statusCode === 200 && body.status === 'ok') {
                       console.log('drone ' + spec.id + ': spawned ok');
-                      completed++;
-                      if (completed === drones.length) {
+                      if (++completed === drones.length) {
                         console.log('spawned on ' + completed + ' drone' + (drones.length !== 1 ? 's' : '') + '!');
                         process.exit();
                       }

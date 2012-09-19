@@ -45,9 +45,9 @@ describe('basic test', function () {
     });
   });
 
-  it('spawn', function (done) {
+  it('deploy', function (done) {
     var root = path.resolve(__dirname, 'fixtures');
-    var cmd = 'spawn --service deploy-test --threads 1 --drones 2 --root ' + root + ' --env.BAZ quo --env.NODE_ENV=production -- FOO=bar node server.js --whut';
+    var cmd = 'deploy --service deploy-test --threads 1 --drones 2 --root ' + root + ' --env.BAZ quo --env.NODE_ENV=production -- FOO=bar node server.js --whut';
     var proc = child_process.exec(path.resolve(__dirname, '../bin/amino') + ' ' + cmd, function (err, stdout, stderr) {
       assert.ifError(err);
       assert(stdout.match('found ' + drones.length + ' drones'));
