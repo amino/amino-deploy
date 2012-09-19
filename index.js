@@ -8,6 +8,7 @@ var npm = require('npm')
   , fs = require('fs')
   , archy = require('archy')
   , moment = require('moment')
+  , yaml = require('yamljs')
 
 function list (str) {
   return str.split(/ *, */).map(function (val) {
@@ -54,6 +55,8 @@ if (process.argv[2] === 'spawn') {
 
 var program = require('commander')
   .version(require('./package').version)
+  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
+  .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .usage('<command>')
 
 function ifErr (err) {
@@ -82,8 +85,8 @@ function safeParse (body) {
 
 function findDrones(program, cb) {
   var drones = [];
-  if (!amino.Spec) amino.init({redis: program.redis});
-  var spec = new amino.Spec(program.service);
+  if (!amino.Spec) amino.init({redis: program.parent.redis});
+  var spec = new amino.Spec(program.parent.service);
   console.log('searching for drones...');
   amino.subscribe('_get:' + spec.service + ':' + amino.id, function (spec) {
     drones.push(new amino.Spec(spec));
@@ -106,8 +109,6 @@ program
   .option('-r, --root <dir>', 'project root which will be packed and sent to drones as the cwd. (default: cwd)', process.cwd())
   .option('--drones <count>', 'number of drones to spawn on. (default: all drones)')
   .option('--threads <count>', 'number of threads to spawn per drone. (default: drone\'s cpu count)')
-  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
-  .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .action(function () {
     var program = [].slice.call(arguments).pop();
 
@@ -219,8 +220,6 @@ program
 program
   .command('respawn [sha1/id]')
   .description('respawn running processes, optionally on a particular git or tarball sha1 or process id')
-  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
-  .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .action(function (sha1, program) {
     findDrones(program, function (drones) {
       if (!drones.length) ifErr(new Error('no drones found!'));
@@ -254,7 +253,7 @@ program
   .action(function (sha1, program) {
     findDrones(program, function (drones) {
       if (!drones.length) ifErr(new Error('no drones found!'));
-      var completed = 0, ps = {label: program.service, nodes: []};
+      var completed = 0, ps = {label: program.parent.service, nodes: []};
       drones.forEach(function (spec) {
         var baseUrl = 'http://' + spec.host + ':' + spec.port;
         var path = sha1 ? '/ps/' + sha1 : '/ps';
@@ -299,12 +298,10 @@ program
 program
   .command('stop [sha1/id]')
   .description('stop running processes, optionally on a particular git or tarball sha1 or process id')
-  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
-  .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .action(function (sha1, program) {
     findDrones(program, function (drones) {
       if (!drones.length) ifErr(new Error('no drones found!'));
-      var completed = 0, ps = {label: program.service, nodes: []};
+      var completed = 0, ps = {label: program.parent.service, nodes: []};
       drones.forEach(function (spec) {
         var baseUrl = 'http://' + spec.host + ':' + spec.port;
         var path = sha1 ? '/ps/' + sha1 : '/ps';
@@ -323,6 +320,27 @@ program
           }
         });
       });
+    });
+  })
+
+program
+  .command('config')
+  .description('save arguments to .amino.yml to act as defaults')
+  .action(function (program) {
+    try {
+      var opts = yaml.load('.amino.yml');
+    }
+    catch (e) {
+      var opts = {};
+    };
+    ['service', 'redis'].forEach(function (o) {
+      if (typeof program.parent[o] !== 'undefined') {
+        opts[o] = program.parent[o];
+      }
+    });
+    fs.writeFile('.amino.yml', yaml.stringify(opts), function (err) {
+      ifErr(err);
+      console.log('wrote .amino.yml');
     });
   })
 

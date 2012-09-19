@@ -12,7 +12,8 @@
     "read-package-json": "~0.1.5",
     "request": "~2.11.1",
     "archy": "0.0.2",
-    "moment": "~1.7.0"
+    "moment": "~1.7.0",
+    "yamljs": "~0.1.3"
   },
   "devDependencies": {
     "mocha": "*",
