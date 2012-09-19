@@ -1,6 +1,6 @@
 {
   "name": "amino-deploy",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "command-line tool to deploy an application across a cluster of drones",
   "bin": {
     "amino": "./bin/amino"
@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "mocha": "*",
-    "amino-drone": "~0.0.0",
+    "amino-drone": "~0.0.1",
     "idgen": "1.x",
     "rimraf": "~2.0.2"
   },
