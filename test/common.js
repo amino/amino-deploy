@@ -12,4 +12,6 @@ idgen = require('idgen');
 
 rimraf = require('rimraf');
 
+request = require('request');
+
 amino = require('amino').init();

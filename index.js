@@ -35,13 +35,21 @@ if (process.argv[2] === 'spawn') {
       break;
     }
   }
-  var spawnCmd = spawnArgs.shift();
-  for (var i = 0; i < process.argv.length; i++) {
-    var match = process.argv[i].match(/^\-\-env\.(.*?)(?:=(.*))?$/);
-    if (match) {
-      spawnEnv[match[1]] = process.argv.splice(i, 1)[0] || process.argv.splice(i + 1, 1)[0];
+  var argv = [].concat(process.argv);
+  process.argv = [];
+  for (var i = 0; i < argv.length; i++) {
+    var match = argv[i].match(/^\-\-env\.([A-Z0-9_]+)(?:=(.*))?$/);
+    if (match && match[2]) {
+      spawnEnv[match[1]] = match[2];
+    }
+    else if (match && match[1]) {
+      spawnEnv[match[1]] = argv.splice(i + 1, 1)[0];
+    }
+    else {
+      process.argv.push(argv[i]);
     }
   }
+  var spawnCmd = spawnArgs.shift();
 }
 
 var program = require('commander')
