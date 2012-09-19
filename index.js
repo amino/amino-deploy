@@ -87,7 +87,7 @@ function findDrones(program, cb) {
   var drones = [];
   if (!amino.Spec) amino.init({redis: program.parent.redis});
   var spec = new amino.Spec(program.parent.service);
-  console.log('searching for drones...');
+  console.log('searching for ' + spec.service + ' drones...');
   amino.subscribe('_get:' + spec.service + ':' + amino.id, function (spec) {
     drones.push(new amino.Spec(spec));
   });
@@ -361,9 +361,7 @@ function applyConfig (program) {
         program.parent[k] = opts[k];
       }
     });
-    program.parent.service || (program.parent.service = 'app-drone');
   }
-  catch (e) {
-    return;
-  };
+  catch (e) {};
+  program.parent.service || (program.parent.service = 'app-drone');
 }
