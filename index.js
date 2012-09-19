@@ -35,10 +35,11 @@ if (process.argv[2] === 'spawn') {
       break;
     }
   }
+  var spawnCmd = spawnArgs.shift();
   for (var i = 0; i < process.argv.length; i++) {
     var match = process.argv[i].match(/^\-\-env\.(.*?)(?:=(.*))?$/);
     if (match) {
-      spawnEnv[match[1]] = match[2] || process.argv.splice(i + 1, 1)[0];
+      spawnEnv[match[1]] = process.argv.splice(i, 1)[0] || process.argv.splice(i + 1, 1)[0];
     }
   }
 }
@@ -154,7 +155,7 @@ program
                     }
                   });
                   var form = req.form();
-                  form.append('cmd', spawnArgs.shift());
+                  form.append('cmd', spawnCmd);
                   form.append('args', JSON.stringify(spawnArgs));
                   form.append('env', JSON.stringify(spawnEnv));
                   form.append('commit', commit);
