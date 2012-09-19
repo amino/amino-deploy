@@ -2,6 +2,6 @@
   "name": "amino-deploy-test",
   "version": "0.0.0",
   "dependencies": {
-    "lump": "*"
+    "idgen": "1.x"
   }
 }

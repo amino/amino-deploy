@@ -40,6 +40,7 @@ describe('basic test', function () {
       assert(stdout.match(/deploy\-test/));
       assert.equal(stdout.match(/drone#[a-zA-Z0-9]{8}/g).length, drones.length);
       assert.equal(stdout.match(/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{2,5}/g).length, drones.length);
+      assert(!stdout.match(/proc#/));
       done();
     });
   });
@@ -71,12 +72,32 @@ describe('basic test', function () {
       if (drone.port) {
         request('http://localhost:' + drone.port, function (err, res, body) {
           assert.ifError(err);
-          assert.equal(body, 'ok');
+          assert(body.match(/^ok: /));
           if (++running === 2) {
             done();
           }
         });
       }
+    });
+  });
+
+  it('stops processes', function (done) {
+    child_process.exec(path.resolve(__dirname, '../node_modules/.bin/amino') + ' --service deploy-test stop', function (err, stdout, stderr) {
+      assert.ifError(err);
+      assert.equal(stdout.match(/stopped 1 processes/g).length, 2);
+      assert.equal(stdout.match(/stopped 0 processes/g).length, 1);
+      done();
+    });
+  });
+
+  it('empty ps', function (done) {
+    child_process.exec(path.resolve(__dirname, '../node_modules/.bin/amino') + ' --service deploy-test ps', function (err, stdout, stderr) {
+      assert.ifError(err);
+      assert(stdout.match(/deploy\-test/));
+      assert.equal(stdout.match(/drone#[a-zA-Z0-9]{8}/g).length, drones.length);
+      assert.equal(stdout.match(/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{2,5}/g).length, drones.length);
+      assert(!stdout.match(/proc#/));
+      done();
     });
   });
 });
