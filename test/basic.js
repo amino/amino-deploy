@@ -35,7 +35,7 @@ describe('basic test', function () {
   });
 
   it('empty ps', function (done) {
-    child_process.exec(path.resolve(__dirname, '../node_modules/.bin/amino') + ' --service deploy-test ps', function (err, stdout, stderr) {
+    child_process.exec(path.resolve(__dirname, '../bin/amino') + ' --service deploy-test ps', function (err, stdout, stderr) {
       assert.ifError(err);
       assert(stdout.match(/deploy\-test/));
       assert.equal(stdout.match(/drone#[a-zA-Z0-9]{8}/g).length, drones.length);
@@ -48,7 +48,7 @@ describe('basic test', function () {
   it('spawn', function (done) {
     var root = path.resolve(__dirname, 'fixtures');
     var cmd = 'spawn --service deploy-test --threads 1 --drones 2 --root ' + root + ' --env.BAZ quo --env.NODE_ENV=production -- FOO=bar node server.js --whut';
-    var proc = child_process.exec(path.resolve(__dirname, '../node_modules/.bin/amino') + ' ' + cmd, function (err, stdout, stderr) {
+    var proc = child_process.exec(path.resolve(__dirname, '../bin/amino') + ' ' + cmd, function (err, stdout, stderr) {
       assert.ifError(err);
       assert(stdout.match('found ' + drones.length + ' drones'));
       assert(stdout.match(/spawned ok/g).length, 2);
@@ -58,7 +58,7 @@ describe('basic test', function () {
   });
 
   it('ps', function (done) {
-    child_process.exec(path.resolve(__dirname, '../node_modules/.bin/amino') + ' --service deploy-test ps', function (err, stdout, stderr) {
+    child_process.exec(path.resolve(__dirname, '../bin/amino') + ' --service deploy-test ps', function (err, stdout, stderr) {
       assert.ifError(err);
       assert(stdout.match(/deploy\-test/));
       assert.equal(stdout.match(/proc#[a-zA-Z0-9]{8}/g).length, 2);
@@ -82,7 +82,7 @@ describe('basic test', function () {
   });
 
   it('stops processes', function (done) {
-    child_process.exec(path.resolve(__dirname, '../node_modules/.bin/amino') + ' --service deploy-test stop', function (err, stdout, stderr) {
+    child_process.exec(path.resolve(__dirname, '../bin/amino') + ' --service deploy-test stop', function (err, stdout, stderr) {
       assert.ifError(err);
       assert.equal(stdout.match(/stopped 1 processes/g).length, 2);
       assert.equal(stdout.match(/stopped 0 processes/g).length, 1);
@@ -91,7 +91,7 @@ describe('basic test', function () {
   });
 
   it('empty ps', function (done) {
-    child_process.exec(path.resolve(__dirname, '../node_modules/.bin/amino') + ' --service deploy-test ps', function (err, stdout, stderr) {
+    child_process.exec(path.resolve(__dirname, '../bin/amino') + ' --service deploy-test ps', function (err, stdout, stderr) {
       assert.ifError(err);
       assert(stdout.match(/deploy\-test/));
       assert.equal(stdout.match(/drone#[a-zA-Z0-9]{8}/g).length, drones.length);
