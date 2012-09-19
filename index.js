@@ -55,7 +55,7 @@ if (process.argv[2] === 'spawn') {
 
 var program = require('commander')
   .version(require('./package').version)
-  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
+  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)')
   .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .usage('<command>')
 
@@ -111,6 +111,7 @@ program
   .option('--threads <count>', 'number of threads to spawn per drone. (default: drone\'s cpu count)')
   .action(function () {
     var program = [].slice.call(arguments).pop();
+    applyConfig(program);
 
     readJson(path.join(program.root, 'package.json'), function (err, data) {
       ifErr(err);
@@ -221,6 +222,7 @@ program
   .command('respawn [sha1/id]')
   .description('respawn running processes, optionally on a particular git or tarball sha1 or process id')
   .action(function (sha1, program) {
+    applyConfig(program);
     findDrones(program, function (drones) {
       if (!drones.length) ifErr(new Error('no drones found!'));
       var completed = 0;
@@ -248,9 +250,8 @@ program
 program
   .command('ps [sha1]')
   .description('show running processes, optionally on a particular git or tarball sha1')
-  .option('-s, --service <name[@version]>', 'drone service to request, with optional semver (default: app-drone)', 'app-drone')
-  .option('-r, --redis <port/host/host:port/list>', 'redis server(s) used by the service (can be comma-separated)', list)
   .action(function (sha1, program) {
+    applyConfig(program);
     findDrones(program, function (drones) {
       if (!drones.length) ifErr(new Error('no drones found!'));
       var completed = 0, ps = {label: program.parent.service, nodes: []};
@@ -299,6 +300,7 @@ program
   .command('stop [sha1/id]')
   .description('stop running processes, optionally on a particular git or tarball sha1 or process id')
   .action(function (sha1, program) {
+    applyConfig(program);
     findDrones(program, function (drones) {
       if (!drones.length) ifErr(new Error('no drones found!'));
       var completed = 0, ps = {label: program.parent.service, nodes: []};
@@ -327,17 +329,11 @@ program
   .command('config')
   .description('save arguments to .amino.yml to act as defaults')
   .action(function (program) {
-    try {
-      var opts = yaml.load('.amino.yml');
-    }
-    catch (e) {
-      var opts = {};
+    applyConfig(program);
+    var opts = {
+      service: program.parent.service,
+      redis: program.parent.redis
     };
-    ['service', 'redis'].forEach(function (o) {
-      if (typeof program.parent[o] !== 'undefined') {
-        opts[o] = program.parent[o];
-      }
-    });
     fs.writeFile('.amino.yml', yaml.stringify(opts), function (err) {
       ifErr(err);
       console.log('wrote .amino.yml');
@@ -355,4 +351,19 @@ program.parse(process.argv);
 
 if (!program.args.length) {
   program.outputHelp();
+}
+
+function applyConfig (program) {
+  try {
+    var opts = yaml.load('.amino.yml');
+    Object.keys(opts).forEach(function (k) {
+      if (typeof program.parent[k] === 'undefined') {
+        program.parent[k] = opts[k];
+      }
+    });
+    program.parent.service || (program.parent.service = 'app-drone');
+  }
+  catch (e) {
+    return;
+  };
 }
