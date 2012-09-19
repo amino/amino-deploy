@@ -15,7 +15,10 @@
     "moment": "~1.7.0"
   },
   "devDependencies": {
-    "mocha": "*"
+    "mocha": "*",
+    "amino-drone": "~0.0.0",
+    "idgen": "1.x",
+    "rimraf": "~2.0.2"
   },
   "scripts": {
     "test": "make test"

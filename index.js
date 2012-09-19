@@ -158,7 +158,9 @@ program
                   form.append('cmd', spawnCmd);
                   form.append('args', JSON.stringify(spawnArgs));
                   form.append('env', JSON.stringify(spawnEnv));
-                  form.append('commit', commit);
+                  if (commit) {
+                    form.append('commit', commit);
+                  }
                   if (program.threads) {
                     form.append('threads', program.threads);
                   }
