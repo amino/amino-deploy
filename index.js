@@ -9,6 +9,7 @@ var npm = require('npm')
   , archy = require('archy')
   , moment = require('moment')
   , yaml = require('yamljs')
+  , child_process = require('child_process')
 
 function list (str) {
   return str.split(/ *, */).map(function (val) {
@@ -221,6 +222,61 @@ program
               }
             });
           });
+        });
+      });
+    });
+  })
+
+program
+  .command('redeploy')
+  .description('deploy latest code, spawn copies of existing processes, and then stop old processes')
+  .option('-r, --root <dir>', 'project root of the existing deployment. (default: cwd)', process.cwd())
+  .action(function (program) {
+    applyConfig(program);
+    var args = ['deploy', '--service', program.parent.service, '--root', program.root];
+    if (program.parent.redis) args.push('--redis', program.parent.redis.join(','));
+    var proc = child_process.spawn(path.resolve(__dirname, 'bin/amino'), args);
+    var sha1sum, commit;
+    proc.stdout.on('data', function (chunk) {
+      var data = chunk.toString();
+      var match = data.match(/sha1 sum: (\w+)/);
+      if (match) {
+        sha1sum = match[1];
+      }
+      match = data.match(/git hash: (\w+)/);
+      if (match) {
+        commit = match[1];
+      }
+    });
+    proc.stdout.pipe(process.stdout);
+    proc.stderr.pipe(process.stderr);
+    proc.once('exit', function (code) {
+      if (code) ifErr(new Error('deploy exited with code ' + code));
+      findDrones(program, function (drones) {
+        if (!drones.length) ifErr(new Error('no drones found!'));
+        var completed = 0;
+        console.log('redeploying...');
+        drones.forEach(function (spec) {
+          var baseUrl = 'http://' + spec.host + ':' + spec.port;
+          var path = '/deployments/' + sha1sum + '/redeploy';
+          var req = request.post(baseUrl + path, function (err, res, body) {
+            ifErr(err);
+            body = safeParse(body);
+            if (res.statusCode === 200) {
+              console.log('drone ' + spec.id + ': redeployed ' + body.count + ' processes');
+            }
+            else {
+              console.log('drone ' + spec.id + ': error ' + res.statusCode + ': ' + body.error);
+            }
+            completed++;
+            if (completed === drones.length) {
+              process.exit();
+            }
+          });
+          if (commit) {
+            var form = req.form();
+            form.append('commit', commit);
+          }
         });
       });
     });
