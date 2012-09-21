@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "mocha": "*",
-    "amino-drone": "~0.0.1",
+    "amino-drone": "~0.1.0",
     "idgen": "1.x",
     "rimraf": "~2.0.2"
   },
