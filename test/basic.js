@@ -6,7 +6,7 @@ describe('basic test', function () {
       (function () {
         var dir = '/tmp/amino-deploy-test-' + idgen();
         fs.mkdirSync(dir);
-        var drone = child_process.spawn(path.resolve(__dirname, '../node_modules/.bin/amino-drone'), [dir, '--service', 'deploy-test']);
+        var drone = child_process.spawn(path.resolve(__dirname, '../node_modules/.bin/amino-drone'), [dir, '--service', 'deploy-test', '--host', '127.0.0.1']);
         drone.cwd = dir;
         drone.stdout.on('data', function startListener (chunk) {
           var data = chunk.toString();
