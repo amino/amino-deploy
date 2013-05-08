@@ -427,5 +427,6 @@ function applyConfig (program) {
     });
   }
   catch (e) {};
-  program.parent.service || (program.parent.service = 'app-drone');
+  var parent = program.parent || program;
+  parent.service || (parent.service = 'app-drone');
 }
