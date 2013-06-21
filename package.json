@@ -8,7 +8,7 @@
   "dependencies": {
     "commander": "~1.0.4",
     "amino": "~1.1.2",
-    "npm": "~1.1.61",
+    "npm": "~1.3.0",
     "read-package-json": "~0.1.5",
     "request": "~2.11.1",
     "archy": "0.0.2",
