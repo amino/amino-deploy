@@ -339,7 +339,7 @@ program
                       val = moment.humanizeDuration(val);
                     }
                     else if (k === 'lastRespawn') {
-                      val = moment.humanizeDuration(-1 * val, true);
+                      val = moment.humanizeDuration(-1 * (new Date().getTime() - val), true);
                     }
                     return k + ': ' + val;
                   })
